@@ -20,15 +20,12 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    //LightingState
-    public GameState gameState;
+    public List<Sound> sounds = new List<Sound>();
 
-    //Events
-    public static event Action<GameState> OnGameStateChange;
-
-    [SerializeField] GameObject levelWinUI;
     public Transform playerTransform;
+    public GameObject PauseUI;
     GameObject player;
+
     private void Awake()
     {
         if (_instance == null)
@@ -47,26 +44,21 @@ public class GameManager : MonoBehaviour
         playerTransform = player.transform;
     }
 
-    public void UpdateGameState(GameState newState)
+    public void PauseGame()
     {
-        gameState = newState;
-        switch (newState)
+        if (PauseUI.activeSelf)
         {
-            case GameState.Planning:
-                levelWinUI.SetActive(false);
-                break;
-            case GameState.Playing:
-                break;
-            case GameState.LevelEnd:
-                levelWinUI.SetActive(true);
-                break;
-            default:
-                Debug.LogError("Somethings wrong I can feel it");
-                break;
+            PauseUI.SetActive(false);
+            Cursor.lockState = CursorLockMode.Locked;
+            LevelLoaderManager.Instance.ResumeGame();
         }
-
-        OnGameStateChange?.Invoke(newState);
-    }    
+        else
+        {
+            PauseUI.SetActive(true);
+            Cursor.lockState = CursorLockMode.None;
+            LevelLoaderManager.Instance.PauseGame();
+        }
+    }
 }
 
 public enum GameState 

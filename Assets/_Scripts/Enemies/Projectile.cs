@@ -5,6 +5,9 @@ using UnityEngine;
 public class Projectile : MonoBehaviour
 {
     [SerializeField]
+    GameObject partical;
+
+    [SerializeField]
     private float speed;
     private Rigidbody rb;
 
@@ -20,6 +23,11 @@ public class Projectile : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        if (partical)
+        {
+            Instantiate(partical);
+        }
+
         Destroy(gameObject);
     }
 }

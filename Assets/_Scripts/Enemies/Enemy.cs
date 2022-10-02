@@ -11,6 +11,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] int playerHealAmount = 1;
     [SerializeField] int health = 1;
 
+    Rigidbody rb;
     [HideInInspector]
     public  Animator spriteAnim;
     [HideInInspector]
@@ -20,6 +21,7 @@ public class Enemy : MonoBehaviour
 
     public virtual void Start()
     {
+        rb = GetComponent<Rigidbody>();
         agent = GetComponent<NavMeshAgent>();
         spriteAnim = GetComponentInChildren<Animator>();
         angleToPlayer = GetComponent<AngleToPlayer>();
@@ -33,11 +35,14 @@ public class Enemy : MonoBehaviour
 
     public virtual void DamageEnemy(int damageAmount)
     {
+        AudioManager.PlaySoundAtPoint(SoundNames.EnemyHurt, transform.position);
+
+        health -= damageAmount;
+        StartCoroutine(EnemyStun());
         if (deathParticalEffect)
         {
             Instantiate(deathParticalEffect, transform.position, transform.rotation);
         }
-        health -= damageAmount;
         if (health <= 0)
         {
             KillEnemy();
@@ -46,8 +51,9 @@ public class Enemy : MonoBehaviour
 
     public virtual void KillEnemy()
     {
-        //LevelManager.Instance.enemiesKilled++;
-        ScoreManager.Instance.AddPoints(pointsValue);
+        AudioManager.PlaySoundAtPoint(SoundNames.EnemyDie, transform.position);
+
+        ScoreManager.Instance.AddPoints((int)pointsValue);
 
         PlayerHealth playerH = GameManager.Instance.playerTransform.gameObject.GetComponent<PlayerHealth>();
         playerH.HealPlayer(playerHealAmount);
@@ -58,8 +64,13 @@ public class Enemy : MonoBehaviour
     IEnumerator EnemyStun()
     {
         agent.isStopped = true;
+        //agent.enabled = false;
+        rb.isKinematic = false;
+        rb.AddForce(-transform.forward * 100);
         yield return new WaitForSeconds(1f);
         Debug.Log("yuh");
+        rb.isKinematic = true;
+        //agent.enabled = true;
         agent.isStopped = false;
         yield break;
     }

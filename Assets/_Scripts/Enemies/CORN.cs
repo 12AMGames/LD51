@@ -5,6 +5,7 @@ using UnityEngine;
 public class CORN : Enemy
 {
     [SerializeField] float enemySearchRad = 1;
+    [SerializeField] GameObject popCorn;
 
     public override void Update()
     {
@@ -19,6 +20,16 @@ public class CORN : Enemy
         {
             agent.stoppingDistance = 100;
         }
+    }
+
+    public override void KillEnemy()
+    {
+        int amt = Random.Range(0, 6);
+        for (int i = 0; i < amt; i++)
+        {
+            Instantiate(popCorn, transform.position, Quaternion.identity);
+        }
+        base.KillEnemy();
     }
 
     private void OnDrawGizmosSelected()

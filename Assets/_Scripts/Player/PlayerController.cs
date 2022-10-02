@@ -12,6 +12,7 @@ public class PlayerController : MonoBehaviour
     //Mouse
     [Header("Mouse")]
     [SerializeField] float mouseSen;
+    [SerializeField] float mouseSenMultiplyer = 1;
     private float xRotation;
     [SerializeField] Camera cam;
     Vector2 mousePos;
@@ -25,8 +26,6 @@ public class PlayerController : MonoBehaviour
     float maxSpeed = 100f, acceleration = 10f, airAccDamp = 1f, maxAccForce = 150f;
     [SerializeField]
     float wallBounceIntensity = 1f;
-    [SerializeField]
-    float test = 0f;
     bool isStopped = false;
 
 
@@ -52,11 +51,20 @@ public class PlayerController : MonoBehaviour
 
     [Header("Kick")]
     [SerializeField]
+     GameObject sodaPrefab;
+    [SerializeField]
     int kickDamage = 1;
+
     [SerializeField]
     float kickForce;
     [SerializeField]
     float kickRadius = 1f;
+    [SerializeField]
+    private float attackCoolDownTime = 1f;
+    private float attackCoolDown = 0f;
+
+    public bool canThrow = false;
+
     [SerializeField]
     Transform kickTransform;
     [SerializeField]
@@ -67,6 +75,7 @@ public class PlayerController : MonoBehaviour
         GameObject ui = GameObject.FindGameObjectWithTag("UI");
 
         GameObject obj = Instantiate(handsUI, ui.transform);
+        obj.transform.SetSiblingIndex(0);
         handAnim = obj.GetComponentInChildren<Animator>();
 
         rb = GetComponent<Rigidbody>();
@@ -79,10 +88,17 @@ public class PlayerController : MonoBehaviour
         controls.Player.Look.canceled += ctx => mousePos = ctx.ReadValue<Vector2>();
         controls.Player.Movement.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         controls.Player.Movement.canceled += _ => moveInput = _.ReadValue<Vector2>();
+        controls.Player.Escape.performed += _ => GameManager.Instance.PauseGame();
+
+        mouseSenMultiplyer = PlayerPrefs.GetFloat("mSen", 1);
     }
 
     private void Update()
     {
+        if (attackCoolDown > 0)
+        {
+            attackCoolDown -= Time.deltaTime;
+        }
         //Jumping
         isGrounded = Physics.CheckSphere(groudCheckPos.position, groundCheckRad, ground);
     }
@@ -136,24 +152,40 @@ public class PlayerController : MonoBehaviour
     {
         if (!isGrounded)
             return;
+        AudioManager.PlaySound(SoundNames.PlayerGrunt);
         rb.AddForce(new Vector3(rb.velocity.x, jumpForce, rb.velocity.z), ForceMode.Impulse);
     }
 
     void Kick()
     {
-        handAnim.SetTrigger("PlayerAttack");
-        Collider[] objects = Physics.OverlapSphere(kickTransform.position, kickRadius, kickableLayer);
-        foreach (Collider col in objects)
+        if (!canThrow)
         {
-           
-            Enemy kick = col.GetComponent<Enemy>();
-            if (kick == null)
+            if (attackCoolDown <= 0)
             {
-                Debug.Log(col);
-                return;
+                handAnim.SetTrigger("PlayerAttack");
+                Collider[] objects = Physics.OverlapSphere(kickTransform.position, kickRadius, kickableLayer);
+                foreach (Collider col in objects)
+                {
+
+                    Enemy kick = col.GetComponent<Enemy>();
+                    if (kick == null)
+                    {
+                        Debug.Log(col);
+                        return;
+                    }
+                    kick.DamageEnemy(kickDamage);
+                }
+                attackCoolDown = attackCoolDownTime;
             }
-            kick.DamageEnemy(kickDamage);
         }
+        else
+        {
+            handAnim.SetBool("HasSoda", false);
+            handAnim.SetTrigger("PlayerAttack");
+            Instantiate(sodaPrefab, kickTransform.position + (transform.forward * 2), transform.rotation);
+            canThrow = false;
+        }
+       
     }
 
     float desiredX;
@@ -162,8 +194,8 @@ public class PlayerController : MonoBehaviour
     {
         if (cam == null)
             return;
-        float mouseX = mousePos.x * Time.fixedDeltaTime * mouseSen;
-        float mouseY = mousePos.y * Time.fixedDeltaTime * mouseSen;
+        float mouseX = mousePos.x * Time.fixedDeltaTime * mouseSen * mouseSenMultiplyer;
+        float mouseY = mousePos.y * Time.fixedDeltaTime * mouseSen * mouseSenMultiplyer;
 
         //Find current look rotation
         Vector3 rot = cam.transform.localRotation.eulerAngles;
@@ -185,6 +217,12 @@ public class PlayerController : MonoBehaviour
         dir += Vector3.up * 5;
         rb.AddForce(dir, ForceMode.Impulse);
         //velGoal = dir;
+    }
+
+    public void Setsen(float value)
+    {
+        mouseSenMultiplyer = value;
+        PlayerPrefs.SetFloat("mSen", value);
     }
 
     private void OnCollisionEnter(Collision collision)

@@ -8,6 +8,9 @@ TextureImporter:
   - first:
       213: 8240290130892616403
     second: PlayerHandsSheet_1
+  - first:
+      213: -6116328338615941094
+    second: PlayerHandsSheet_2
   externalObjects: {}
   serializedVersion: 11
   mipmaps:
@@ -170,6 +173,27 @@ TextureImporter:
       bones: []
       spriteID: 3d2f20217346b5270800000000000000
       internalID: 8240290130892616403
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: PlayerHandsSheet_2
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 0
+        width: 128
+        height: 64
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a18442f18cf6e1ba0800000000000000
+      internalID: -6116328338615941094
       vertices: []
       indices: 
       edges: []

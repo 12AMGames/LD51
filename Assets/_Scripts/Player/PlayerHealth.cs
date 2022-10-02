@@ -9,8 +9,6 @@ public class PlayerHealth : MonoBehaviour
     public static event Action OnPlayerHealthUpdated;
 
     [SerializeField]
-    private float knockBackForce;
-    [SerializeField]
     private TextMeshProUGUI timerText;
     public float playerHealth = 6;
     public float playerMaxHealth = 6;
@@ -18,6 +16,7 @@ public class PlayerHealth : MonoBehaviour
     private Rigidbody rb;
     private PlayerController player;
 
+    public GameObject GameOverUI;
 
     private void Start()
     {
@@ -39,22 +38,24 @@ public class PlayerHealth : MonoBehaviour
 
     public void HealPlayer(int amt)
     {
-        if (playerHealth < playerMaxHealth)
+        playerHealth += amt;
+        if (playerHealth > playerMaxHealth)
         {
-            OnPlayerHealthUpdated?.Invoke();
-            playerHealth += amt;
+            playerHealth = playerMaxHealth;
         }
+        OnPlayerHealthUpdated?.Invoke();
+        Debug.Log(playerHealth);
     }
 
     public void DamagePlayer(int amt)
     {
+        AudioManager.PlaySound(SoundNames.PlayerHurt);
+
         playerHealth -= amt;
         OnPlayerHealthUpdated?.Invoke();
-
-        Debug.Log(playerHealth);
         if(playerHealth <= 0)
         {
-            Die();
+            StartCoroutine(Die());
         }
     }
 
@@ -77,8 +78,12 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    private void Die()
+    IEnumerator Die()
     {
+        Instantiate(GameOverUI, GameObject.FindGameObjectWithTag("UI").transform);
+        GetComponent<PlayerController>().enabled = false;
+        ScoreManager.Instance.SaveStats();
+        yield return new WaitForSeconds(2);
         LevelLoaderManager.Instance.Restart();
     }
 

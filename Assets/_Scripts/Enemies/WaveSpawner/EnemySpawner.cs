@@ -9,10 +9,10 @@ public class EnemySpawner : MonoBehaviour
     [SerializeField] List<WaveOveride> enemyWaveOverride = new List<WaveOveride>();
     WaveOveride currentWaveOveride;
     [SerializeField] float spawnRate;
-    float nextWave = 15f;
+    float nextWave = 5f;
     float timer;
     int currentOverride = 0;
-    int waveIndex = 0;
+    public int waveIndex = 0;
 
     private void Start()
     {        
@@ -45,6 +45,7 @@ public class EnemySpawner : MonoBehaviour
 
     IEnumerator Spawn()
     {
+        yield return new WaitForSeconds (5); 
         while (true)
         {
             int odds = 1;
