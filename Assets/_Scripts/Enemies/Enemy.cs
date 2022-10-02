@@ -1,21 +1,42 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.AI;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
-    private Animator spriteAnim;
-    private AngleToPlayer angleToPlayer;
-    private int health = 1;
+    [SerializeField] GameObject deathParticalEffect;
+    [SerializeField] float playerKnockbackAmount = 1;
+    [SerializeField] float pointsValue = 100;
+    [SerializeField] int playerHealAmount = 1;
+    [SerializeField] int health = 1;
 
-    private void Start()
+    [HideInInspector]
+    public  Animator spriteAnim;
+    [HideInInspector]
+    public NavMeshAgent agent;
+    [HideInInspector]
+    public AngleToPlayer angleToPlayer;
+
+    public virtual void Start()
     {
+        agent = GetComponent<NavMeshAgent>();
         spriteAnim = GetComponentInChildren<Animator>();
         angleToPlayer = GetComponent<AngleToPlayer>();
     }
 
-    public void DamageEnemy(int damageAmount)
+    public virtual void Update()
     {
+        agent.destination = GameManager.Instance.playerTransform.position;
+        spriteAnim.SetFloat("spriteRot", angleToPlayer.lastIndex);
+    }
+
+    public virtual void DamageEnemy(int damageAmount)
+    {
+        if (deathParticalEffect)
+        {
+            Instantiate(deathParticalEffect, transform.position, transform.rotation);
+        }
         health -= damageAmount;
         if (health <= 0)
         {
@@ -23,17 +44,34 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    public void KillEnemy()
+    public virtual void KillEnemy()
     {
-        GameObject effect = Instantiate(deathParticalEffect, transform.position, Quaternion.identity);
-        ParticleSystem.MainModule settings = effect.GetComponent<ParticleSystem>().main;
-        settings.startColor = GetComponent<SpriteRenderer>().color;
         //LevelManager.Instance.enemiesKilled++;
+        ScoreManager.Instance.AddPoints(pointsValue);
+
+        PlayerHealth playerH = GameManager.Instance.playerTransform.gameObject.GetComponent<PlayerHealth>();
+        playerH.HealPlayer(playerHealAmount);
+
         Destroy(gameObject);
     }
 
-    private void Update()
+    IEnumerator EnemyStun()
     {
-        spriteAnim.SetFloat("spriteRot", angleToPlayer.lastIndex);
+        agent.isStopped = true;
+        yield return new WaitForSeconds(1f);
+        Debug.Log("yuh");
+        agent.isStopped = false;
+        yield break;
+    }
+
+    public virtual void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            if (agent.isStopped)
+                return;
+            collision.gameObject.GetComponent<PlayerController>().Knockback(transform.forward * playerKnockbackAmount);
+            StartCoroutine(EnemyStun());
+        }
     }
 }

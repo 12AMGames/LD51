@@ -4,10 +4,15 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    //UI
+    [Header("UI")]
+    [SerializeField] GameObject handsUI;
+    public Animator handAnim;
+
     //Mouse
     [Header("Mouse")]
-    private float xRotation;
     [SerializeField] float mouseSen;
+    private float xRotation;
     [SerializeField] Camera cam;
     Vector2 mousePos;
     float xRot = 0;
@@ -19,8 +24,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     float maxSpeed = 100f, acceleration = 10f, airAccDamp = 1f, maxAccForce = 150f;
     [SerializeField]
-    float stopMovementDamper = 1f;
-    float stopFromVelTimer = 0f;
+    float wallBounceIntensity = 1f;
+    [SerializeField]
+    float test = 0f;
     bool isStopped = false;
 
 
@@ -46,27 +52,27 @@ public class PlayerController : MonoBehaviour
 
     [Header("Kick")]
     [SerializeField]
-    float kickForce;
+    int kickDamage = 1;
     [SerializeField]
-    Transform kickTransform;
+    float kickForce;
     [SerializeField]
     float kickRadius = 1f;
     [SerializeField]
+    Transform kickTransform;
+    [SerializeField]
     LayerMask kickableLayer;
-
-    //Crouch
-    [Header("Crouch")]
-    [SerializeField]
-    private CapsuleCollider capCollider;
-    [SerializeField]
-    private float crouchAmount = 2;
-    private bool isCrouching;
 
     private void Awake()
     {
-        controls = new Controls();
+        GameObject ui = GameObject.FindGameObjectWithTag("UI");
+
+        GameObject obj = Instantiate(handsUI, ui.transform);
+        handAnim = obj.GetComponentInChildren<Animator>();
+
         rb = GetComponent<Rigidbody>();
         Cursor.lockState = CursorLockMode.Locked;
+
+        controls = new Controls();
         controls.Player.Kick.performed += _ => Kick();
         controls.Player.Jump.performed += _ => Jump();
         controls.Player.Look.performed += ctx => mousePos = ctx.ReadValue<Vector2>();
@@ -83,11 +89,11 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        PLayerMove();
+        PlayerMove();
         PlayerLook();
     }
 
-    void PLayerMove()
+    void PlayerMove()
     {
         //Movement
         Vector3 localMoveInput = Vector3.ClampMagnitude(moveInput, 1f);
@@ -108,11 +114,19 @@ public class PlayerController : MonoBehaviour
 
         if (localMoveInput.sqrMagnitude > 0)
         {
-            isStopped = false;
+            if (isGrounded)
+            {
+                rb.drag = 0;
+                isStopped = false;
+            }      
         }
         else
         {
-            isStopped = true;
+            if (isGrounded)
+            {
+                rb.drag = 10;
+                isStopped = true;
+            }
         }
 
         rb.AddForce(forceNeeded);
@@ -127,17 +141,18 @@ public class PlayerController : MonoBehaviour
 
     void Kick()
     {
+        handAnim.SetTrigger("PlayerAttack");
         Collider[] objects = Physics.OverlapSphere(kickTransform.position, kickRadius, kickableLayer);
         foreach (Collider col in objects)
         {
            
-            Kickable kick = col.GetComponent<Kickable>();
+            Enemy kick = col.GetComponent<Enemy>();
             if (kick == null)
             {
                 Debug.Log(col);
                 return;
             }
-            kick.Kick(transform.forward, kickForce);
+            kick.DamageEnemy(kickDamage);
         }
     }
 
@@ -163,9 +178,28 @@ public class PlayerController : MonoBehaviour
         transform.localRotation = Quaternion.Euler(0, desiredX, 0);
     }
 
+    public void Knockback(Vector3 dir)
+    {
+        if (dir == Vector3.zero)
+            return;
+        dir += Vector3.up * 5;
+        rb.AddForce(dir, ForceMode.Impulse);
+        //velGoal = dir;
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(Mathf.Abs(Vector3.Dot(collision.GetContact(0).normal, Vector3.down)) < 0.5f)
+        {
+            rb.velocity = new Vector3 (0, rb.velocity.y, 0);
+            velGoal = collision.GetContact(0).normal * wallBounceIntensity;
+        }
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.DrawWireSphere(groudCheckPos.position, groundCheckRad);
+        Gizmos.DrawWireSphere(kickTransform.position, kickRadius);
         Gizmos.DrawRay(groudCheckPos.position, Vector3.down);
        
     }
